@@ -259,6 +259,11 @@
     margin-top:14px;font-size:12px;font-weight:450;
     color:var(--ink-3);line-height:1.6;text-align:center;
   }
+  .form-err{
+    margin-top:14px;font-size:12.5px;font-weight:500;
+    color:#c0392b;line-height:1.6;text-align:center;
+  }
+  .form-err a{color:#c0392b}
   .sent{
     background:var(--brand-50);border:1px solid var(--brand-100);
     border-radius:20px;padding:30px 24px;margin-top:20px;text-align:center;
@@ -430,21 +435,17 @@
       <p>담당자가 확인 후 남겨주신 연락처로 회신드리겠습니다.<br />감사합니다.</p>
     </div>
 
-    <form class="form-card" id="contactForm" action="https://formsubmit.co/heesu0815@limpid.co.kr" method="POST">
-      <input type="hidden" name="_subject" value="[프리믹스 문의] 국립축산과학원 집밥 만들기" />
-      <input type="hidden" name="_template" value="table" />
-      <input type="hidden" name="_captcha" value="false" />
-      <input type="hidden" name="_next" value="https://premix.limpid.co.kr/?sent=1" />
+    <form class="form-card" id="contactForm" novalidate>
       <input type="text" name="_honey" tabindex="-1" autocomplete="off" style="display:none" />
 
       <div class="field">
         <label for="f-name">성함<span class="req">*</span></label>
-        <input id="f-name" name="성함" type="text" required placeholder="홍길동" autocomplete="name" />
+        <input id="f-name" name="name" type="text" required placeholder="홍길동" autocomplete="name" />
       </div>
 
       <div class="field">
         <label for="f-tel">연락처<span class="req">*</span></label>
-        <input id="f-tel" name="연락처" type="tel" required placeholder="010-0000-0000" autocomplete="tel" />
+        <input id="f-tel" name="tel" type="tel" required placeholder="010-0000-0000" autocomplete="tel" />
       </div>
 
       <div class="field">
@@ -454,7 +455,7 @@
 
       <div class="field">
         <label for="f-pet">반려동물</label>
-        <select id="f-pet" name="반려동물">
+        <select id="f-pet" name="pet">
           <option value="">선택해 주세요</option>
           <option>강아지</option>
           <option>고양이</option>
@@ -464,7 +465,7 @@
 
       <div class="field">
         <label for="f-msg">문의 내용<span class="req">*</span></label>
-        <textarea id="f-msg" name="문의내용" required placeholder="구매 수량, 배송 관련 문의 등 남겨주실 내용을 자유롭게 적어주세요."></textarea>
+        <textarea id="f-msg" name="message" required placeholder="구매 수량, 배송 관련 문의 등 남겨주실 내용을 자유롭게 적어주세요."></textarea>
       </div>
 
       <label class="agree">
@@ -477,6 +478,10 @@
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
 
+      <p class="form-err" id="formError" hidden>
+        전송에 실패했습니다. 잠시 후 다시 시도해 주시거나
+        <a href="mailto:heesu0815@limpid.co.kr">heesu0815@limpid.co.kr</a> 로 보내주세요.
+      </p>
       <p class="form-note">보내주신 내용은 heesu0815@limpid.co.kr 로 전달됩니다.</p>
     </form>
   </section>
@@ -497,22 +502,51 @@
 
 <script>
 (function(){
+  var ENDPOINT="https://script.google.com/macros/s/AKfycbxJ0xLjGWaFzV_nQIUj66I0GUo-djKE3_pbPL3v2CNF9KKTvlIvFAUMwIYiIXY9f9uP7g/exec";
+
   var form=document.getElementById("contactForm");
   var sent=document.getElementById("sentBox");
   var btn=document.getElementById("submitBtn");
+  var err=document.getElementById("formError");
+  var sending=false;
 
-  // 제출 완료 후 되돌아온 경우
-  if(location.search.indexOf("sent=1")>-1){
+  function showSent(){
     form.hidden=true;
     sent.hidden=false;
-    sent.scrollIntoView({block:"center"});
-    history.replaceState(null,"",location.pathname);
+    sent.scrollIntoView({block:"center",behavior:"smooth"});
   }
 
-  // 이중 제출 방지
-  form.addEventListener("submit",function(){
+  form.addEventListener("submit",function(ev){
+    ev.preventDefault();
+    if(sending) return;
+
+    // 필수값 검사 (novalidate이므로 직접 확인)
+    if(!form.checkValidity()){
+      form.reportValidity();
+      return;
+    }
+
+    sending=true;
+    err.hidden=true;
     btn.disabled=true;
     btn.textContent="보내는 중…";
+
+    // form-encoded 전송 → preflight 없이 통과
+    var data=new URLSearchParams(new FormData(form)).toString();
+
+    fetch(ENDPOINT,{
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},
+      body:data
+    }).then(function(){
+      showSent();
+    }).catch(function(){
+      sending=false;
+      btn.disabled=false;
+      btn.textContent="문의 보내기";
+      err.hidden=false;
+    });
   });
 })();
 </script>
